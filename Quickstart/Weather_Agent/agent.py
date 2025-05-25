@@ -24,7 +24,7 @@ MODEL_GEMINI_FLASH_2_0_FLASH = "gemini-2.0-flash"
 print("\n ENVIRONMENT CONFIGURED")
 
 
-
+# *****TOOL SETUP*****
 def get_weather(city:str)-> dict:
     """
     Retreives the current weather report for a specified city
@@ -55,7 +55,7 @@ def get_weather(city:str)-> dict:
 print(get_weather("New York"))
 print(get_weather("Paris"))
 
-
+# *****AGENT SETUP*****
 AGENT_MODEL = MODEL_GEMINI_FLASH_2_0_FLASH
 
 weather_agent = Agent(
@@ -71,3 +71,34 @@ weather_agent = Agent(
 )
 
 print(f"\nAgent {weather_agent.name} created with the model {AGENT_MODEL}.")
+
+# *****Setup Session Service *****
+
+session_service = InMemorySessionService()
+APP_NAME = "WeatherAgentApp"
+USER_ID = "USER_1"
+SESSION_ID = "session_001"
+
+
+
+# *****Define Agent Interaction Function*****
+async def call_agent_async(query: str, runner, user_id, session_id):
+    """Sends a query to the agent and prints the final response."""
+    print(f"\n---Calling an agent with query: {query}---")
+    
+    content = types.Content(role = "user", parts = [types.Part(text = query)])
+    final_response_text = "Agent did not produce a final response."
+    
+    async for event in runner.run_async(user_id = user_id, session_id = session_id, new_message = content):
+        if event.is_final_response():
+            if event.content and event.content.parts:
+                final_response_text = event.content.parts[0].text
+            elif event.actions and event.actions.escalate:
+                final_response_text = f"Agent escalated: {event.error_message or "No Specified Message" }"
+            break
+    print(f"\n---Final Response from Agent: {final_response_text}---")
+    
+    
+# # *****Run Conversation*****
+# async def run_conversation():
+    

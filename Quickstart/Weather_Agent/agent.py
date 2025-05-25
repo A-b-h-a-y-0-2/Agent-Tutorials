@@ -24,7 +24,7 @@ MODEL_GEMINI_FLASH_2_0_FLASH = "gemini-2.0-flash"
 print("\n ENVIRONMENT CONFIGURED")
 
 
-
+# *****TOOL SETUP*****
 def get_weather(city:str)-> dict:
     """
     Retreives the current weather report for a specified city
@@ -54,3 +54,73 @@ def get_weather(city:str)-> dict:
     
 print(get_weather("New York"))
 print(get_weather("Paris"))
+
+# *****AGENT SETUP*****
+AGENT_MODEL = MODEL_GEMINI_FLASH_2_0_FLASH
+
+weather_agent = Agent(
+    name = "weather_agent_v1",
+    model = AGENT_MODEL,
+    description = "Provides weather information for specific cities.",
+    instruction = "You are a helpful weather assistant."
+                "When the user asks for the weather in a specified city, "
+                " use the get_weather tool to retrieve the current weather report for that city. "
+                " If the tool returns an error, inform the user politely"
+                " If the tool is successful, present the weather report in a clear and concise manner.",
+    tools = [get_weather],
+)
+
+print(f"\nAgent {weather_agent.name} created with the model {AGENT_MODEL}.")
+
+# *****Setup Session Service *****
+
+session_service = InMemorySessionService()
+APP_NAME = "WeatherAgentApp"
+USER_ID = "USER_1"
+SESSION_ID = "session_001"
+
+
+
+# *****Define Agent Interaction Function*****
+async def call_agent_async(query: str, runner, user_id, session_id):
+    """Sends a query to the agent and prints the final response."""
+    print(f"\n---Calling an agent with query: {query}---")
+    
+    content = types.Content(role = "user", parts = [types.Part(text = query)])
+    final_response_text = "Agent did not produce a final response."
+    
+    async for event in runner.run_async(user_id = user_id, session_id = session_id, new_message = content):
+        if event.is_final_response():
+            if event.content and event.content.parts:
+                final_response_text = event.content.parts[0].text
+            elif event.actions and event.actions.escalate:
+                final_response_text = f"Agent escalated: {event.error_message or "No Specified Message" }"
+            break
+    print(f"\n---Final Response from Agent: {final_response_text}---")
+    
+    
+# *****Run Conversation*****
+async def run_conversation():
+    session = await session_service.create_session(
+        app_name = APP_NAME,
+        user_id = USER_ID,
+        session_id = SESSION_ID,
+    )
+    print(f"\nSession created: {SESSION_ID} for user {USER_ID} in app {APP_NAME}.")
+    runner = Runner(
+        agent = weather_agent,
+        session_service = session_service,
+        app_name = APP_NAME,
+    )
+    print(f"\nRunner created for agent {weather_agent.name} with session service {SESSION_ID}.")
+    
+    
+    await call_agent_async("What is the weather in New York?", runner=runner, user_id=USER_ID, session_id=SESSION_ID)
+    await call_agent_async("What is the weather in Paris?", runner=runner, user_id=USER_ID, session_id=SESSION_ID)
+    await call_agent_async("What is the weather in London?", runner=runner, user_id=USER_ID, session_id=SESSION_ID)
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(run_conversation())
+    except Exception as e:
+        print(f"An error occurred: {e}")

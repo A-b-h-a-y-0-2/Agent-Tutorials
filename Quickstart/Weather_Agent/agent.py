@@ -99,6 +99,28 @@ async def call_agent_async(query: str, runner, user_id, session_id):
     print(f"\n---Final Response from Agent: {final_response_text}---")
     
     
-# # *****Run Conversation*****
-# async def run_conversation():
+# *****Run Conversation*****
+async def run_conversation():
+    session = await session_service.create_session(
+        app_name = APP_NAME,
+        user_id = USER_ID,
+        session_id = SESSION_ID,
+    )
+    print(f"\nSession created: {SESSION_ID} for user {USER_ID} in app {APP_NAME}.")
+    runner = Runner(
+        agent = weather_agent,
+        session_service = session_service,
+        app_name = APP_NAME,
+    )
+    print(f"\nRunner created for agent {weather_agent.name} with session service {SESSION_ID}.")
     
+    
+    await call_agent_async("What is the weather in New York?", runner=runner, user_id=USER_ID, session_id=SESSION_ID)
+    await call_agent_async("What is the weather in Paris?", runner=runner, user_id=USER_ID, session_id=SESSION_ID)
+    await call_agent_async("What is the weather in London?", runner=runner, user_id=USER_ID, session_id=SESSION_ID)
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(run_conversation())
+    except Exception as e:
+        print(f"An error occurred: {e}")

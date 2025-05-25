@@ -124,3 +124,27 @@ if __name__ == "__main__":
         asyncio.run(run_conversation())
     except Exception as e:
         print(f"An error occurred: {e}")
+        
+
+#*****Defining the tools for Greeting and Farewell Agents*****
+def say_hello(name:str = "there") -> str:
+    """Provides simplr greeting to the user, optionally along with their name.
+    Args:
+        name (str, optional): The name of the user, if providedd, else defaults to "there"
+    Returns:
+        str: A friendly greeting to the user.
+    """
+    print(f"---Tool: say_hello called with the name {name}---")
+    return f"Hello, {name}! How may I help you today?"
+
+def say_goodbye() -> str:
+    """Provides a Farewell to the user upon conclusion of the conversation"""
+    print(f"---Tool: say_goodbye called---")
+    return "Goodbye! Have a great day ahead!"
+    
+print("Greeting and Farewell tools defined successfully.")
+
+print(say_hello("Abhay"))
+print(say_goodbye())
+    
+      

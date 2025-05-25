@@ -54,3 +54,20 @@ def get_weather(city:str)-> dict:
     
 print(get_weather("New York"))
 print(get_weather("Paris"))
+
+
+AGENT_MODEL = MODEL_GEMINI_FLASH_2_0_FLASH
+
+weather_agent = Agent(
+    name = "weather_agent_v1",
+    model = AGENT_MODEL,
+    description = "Provides weather information for specific cities.",
+    instruction = "You are a helpful weather assistant."
+                "When the user asks for the weather in a specified city, "
+                " use the get_weather tool to retrieve the current weather report for that city. "
+                " If the tool returns an error, inform the user politely"
+                " If the tool is successful, present the weather report in a clear and concise manner.",
+    tools = [get_weather],
+)
+
+print(f"\nAgent {weather_agent.name} created with the model {AGENT_MODEL}.")

@@ -1,0 +1,22 @@
+# Ignore virtual environment at root
+Agent-venv/
+**/.env
+# Ignore Python cache directories recursively
+**/__pycache__/
+
+# Ignore compiled Python files
+*.py[cod]
+*.pyc
+
+# Ignore .env file inside the project
+multi_tool_agent/.env
+
+# Logs
+*.log
+
+# VS Code settings
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db

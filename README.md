@@ -1,2 +1,2 @@
 # Agent-Tutorials
-I am learning GOogle ADK, its all in here
+I am learning Google ADK, its all in here

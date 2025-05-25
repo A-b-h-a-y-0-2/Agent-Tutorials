@@ -119,11 +119,11 @@ async def run_conversation():
     await call_agent_async("What is the weather in Paris?", runner=runner, user_id=USER_ID, session_id=SESSION_ID)
     await call_agent_async("What is the weather in London?", runner=runner, user_id=USER_ID, session_id=SESSION_ID)
 
-if __name__ == "__main__":
-    try:
-        asyncio.run(run_conversation())
-    except Exception as e:
-        print(f"An error occurred: {e}")
+# if __name__ == "__main__":
+#     try:
+#         asyncio.run(run_conversation())
+#     except Exception as e:
+#         print(f"An error occurred: {e}")
         
 
 #*****Defining the tools for Greeting and Farewell Agents*****
@@ -212,3 +212,46 @@ else:
         print("Farewell agent is not initialized.")
     if 'get_weather' not in globals():
         print("'get_weather' tool is not defined in the global scope.")
+
+# *****Interact with the Agent Team*****
+root_agent_var_name = "root_agent"
+if 'weather_agent_team' in globals(): 
+    root_agent_var_name = 'weather_agent_team'
+elif 'root_agent' not in globals():
+    print("Root agent ('root_agent' or 'weather_agent_team') not found. Cannot define run_team_conversation.")
+
+if "weather_agent_team" in globals() and globals()[root_agent_var_name]:
+    async def run_team_conversation():
+        print("\n---Testing Agent Team Delegation---")
+        session_service = InMemorySessionService()
+        SESSION_ID =  "session_001_agent_team"
+        USER_ID = "USER_1_agent_team"
+        APP_NAME = "WeatherAgentApp_Team"
+        session = await session_service.create_session(
+            app_name = APP_NAME,
+            user_id = USER_ID,
+            session_id = SESSION_ID,
+        )
+        print(f"\nSession created: {SESSION_ID} for user {USER_ID} in app {APP_NAME}.")
+        
+        actual_root_agent = globals()[root_agent_var_name]
+        runner_agent_team = Runner(
+            agent = actual_root_agent,
+            session_service = session_service,
+            app_name = APP_NAME,
+        )
+        print(f"\nRunner created for agent {actual_root_agent.name} with session service {SESSION_ID}.")
+    
+        await call_agent_async("What is the weather in New York?", runner=runner_agent_team, user_id=USER_ID, session_id=SESSION_ID)
+        await call_agent_async("Hello", runner=runner_agent_team, user_id=USER_ID, session_id=SESSION_ID)
+        await call_agent_async("Bye", runner=runner_agent_team, user_id=USER_ID, session_id=SESSION_ID)
+        await call_agent_async("Hey I'm Abhay", runner=runner_agent_team, user_id=USER_ID, session_id=SESSION_ID)        
+        
+        
+    if __name__ == "__main__":
+        try:
+            asyncio.run(run_team_conversation())
+        except Exception as e:
+            print(f"An error occurred: {e}")
+else:
+    print(f"Cannot run team conversation because the root agent '{root_agent_var_name}' is not defined or initialized.")

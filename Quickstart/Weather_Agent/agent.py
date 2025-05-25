@@ -181,3 +181,34 @@ try:
 except Exception as e:
     print(f"Error creating Farewell Agent {e}")
     
+    
+#*****Defining the Root Agent with Sub-Agents*****
+root_agent = None
+runner_root = None
+if greeting_agent and farewell_agent and "get_weather" in globals():
+    root_agent_model = MODEL_GEMINI_FLASH_2_0_FLASH
+    
+    weather_agent_team = Agent(
+        name = "weather_agent_team_v1",
+        model = root_agent_model,
+        description = "THe main coordinating agent that handles the weather requests, and delegates greeting/farewell to the specialists.",
+        instruction = "You are the main Weather Agent."
+                    "Use the 'get_weather' tool ONLY for specific weather requests (e.g., 'weather in London'). "
+                    "You have specialized sub-agents: "
+                    "1. 'greeting_agent': Handles simple greetings like 'Hi', 'Hello'. Delegate to it for these. "
+                    "2. 'farewell_agent': Handles simple farewells like 'Bye', 'See you'. Delegate to it for these. "
+                    "Analyze the user's query. If it's a greeting, delegate to 'greeting_agent'. If it's a farewell, delegate to 'farewell_agent'. "
+                    "If it's a weather request, handle it yourself using 'get_weather'. "
+                    "For anything else, respond appropriately or state you cannot handle it.",
+        tools = [get_weather, say_hello, say_goodbye],
+        sub_agents = [greeting_agent, farewell_agent],
+    )
+    print(f"\n Root Agent {weather_agent_team.name} created with the model {root_agent_model} with sub-agents {[sa.name for sa in weather_agent_team.sub_agents]}.")
+else:
+    print("Cannot create root agent because one or more sub-agents failed to initialize or 'get_weather' tool is missing.")    
+    if greeting_agent is None:
+        print("Greeting agent is not initialized.")
+    if farewell_agent is None:
+        print("Farewell agent is not initialized.")
+    if 'get_weather' not in globals():
+        print("'get_weather' tool is not defined in the global scope.")

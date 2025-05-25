@@ -147,4 +147,37 @@ print("Greeting and Farewell tools defined successfully.")
 print(say_hello("Abhay"))
 print(say_goodbye())
     
-      
+
+# *****Greeting agent creation***** 
+greeting_agent = None
+try:
+    greeting_agent = Agent(
+        name = "greeting_agent_v1",
+        model = MODEL_GEMINI_FLASH_2_0_FLASH,
+        description = "Handles simple greetings with the user, using the 'say_hello' tool",
+        instruction = "You are a Greeting Agent. Your ONLY task is to greet the user." 
+                    "Use the 'say_hello' tool to greet the user"
+                    " If they provide their name, make sure to pass it to the tool."
+                    "Do not engage in any other conversation or tasks.",
+        tools = [say_hello],
+    )
+    print(f"\n greeting_agent created with the model {MODEL_GEMINI_FLASH_2_0_FLASH}.")
+except Exception as e:
+    print(f"Error creating Greeting Agent {e}")
+
+# *****Farewell agent creation*****
+farewell_agent = None
+try:
+    farewell_agent = Agent(
+        name = "farewell_agent_v1",
+        model = MODEL_GEMINI_FLASH_2_0_FLASH,
+        description = "Handles simple farewells with the user, using the 'say_goodbye' tool",
+        instruction = "You are a Farewell Agent. Your ONLY task is to bid farewell to the user." 
+                    "Use the 'say_goodbye' tool to bid farewell to the user."
+                    "Do not engage in any other conversation or tasks.",
+        tools = [say_goodbye],
+    )
+    print(f"\n farewell_agent created with the model {MODEL_GEMINI_FLASH_2_0_FLASH}.")
+except Exception as e:
+    print(f"Error creating Farewell Agent {e}")
+    

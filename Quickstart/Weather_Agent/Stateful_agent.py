@@ -3,9 +3,11 @@ from google.adk.sessions import InMemorySessionService
 from google.adk.tools.tool_context import ToolContext
 from google.adk.agents import Agent
 from google.adk.runners import Runner 
+from google.genai import types
 import os
 import warnings 
 import logging
+import asyncio
 warnings.filterwarnings("ignore")
 logging.basicConfig(level = logging.INFO)
 
@@ -26,28 +28,7 @@ session_service_stateful = InMemorySessionService()
 print(f"Session service initialized: {session_service_stateful}")
 
 
-#*****# Define a stateful agent that can maintain session state*****
-async def main():
 
-    session_stateful = await session_service_stateful.create_session(
-        app_name = APP_NAME,
-        session_id=SESSION_ID_STATEFUL,
-        user_id=USER_ID_STATEFUL,
-        state=initial_state
-    )
-    print(f"Session created: {SESSION_ID_STATEFUL} for user {USER_ID_STATEFUL} in app {APP_NAME}")
-
-    retrieved_session = await session_service_stateful.get_session(app_name = APP_NAME,
-        session_id=SESSION_ID_STATEFUL,
-        user_id=USER_ID_STATEFUL)
-
-
-    print("\n INITIAL SESSION STATE: ")
-    if retrieved_session:
-        print(retrieved_session.state)
-    else:
-        print("ERROR: Session not found.")
-        
     
 
 # if __name__ == "__main__":
@@ -166,12 +147,12 @@ if greeting_agent and farewell_agent and "get_weather_stateful" in globals():
     )
     print(f"✅ Root Agent '{root_agent_stateful.name}' redefined successfully with output key 'last_weather_report'.")
 
-    runner = Runner(
+    runner_root_stateful = Runner(
         agent = root_agent_stateful,
         session_service = session_service_stateful,
         app_name = APP_NAME,
     )
-    print(f"Runner initialized for agent: {runner.agent.name} with session service: {SESSION_ID_STATEFUL}")
+    print(f"Runner initialized for agent: {runner_root_stateful.agent.name} with session service: {SESSION_ID_STATEFUL}")
 else:
     print("Error: Unable to initialize root agent or runner. Ensure all agents and tools are defined correctly.")
     if not greeting_agent:
@@ -181,4 +162,84 @@ else:
     if "get_weather_stateful" not in globals():
         print("Weather tool 'get_weather_stateful' is not defined.")
 
+# *****Define Agent Interaction Function*****
+async def call_agent_async(query: str, runner, user_id, session_id):
+    """Sends a query to the agent and prints the final response."""
+    print(f"\n---Calling an agent with query: {query}---")
+    
+    content = types.Content(role = "user", parts = [types.Part(text = query)])
+    final_response_text = "Agent did not produce a final response."
+    
+    async for event in runner.run_async(user_id = user_id, session_id = session_id, new_message = content):
+        if event.is_final_response():
+            if event.content and event.content.parts:
+                final_response_text = event.content.parts[0].text
+            elif event.actions and event.actions.escalate:
+                final_response_text = f"Agent escalated: {event.error_message or "No Specified Message" }"
+            break
+    print(f"\n---Final Response from Agent: {final_response_text}---")
 
+# *****Interact to Test State Flow and output_key*****
+if "runner_root_stateful" in globals() and runner_root_stateful:
+
+    async def run_stateful_conversation():
+    #*****# Define a stateful agent that can maintain session state*****
+
+        session_stateful = await session_service_stateful.create_session(
+            app_name = APP_NAME,
+            session_id=SESSION_ID_STATEFUL,
+            user_id=USER_ID_STATEFUL,
+            state=initial_state
+        )
+        print(f"Session created: {SESSION_ID_STATEFUL} for user {USER_ID_STATEFUL} in app {APP_NAME}")
+
+        retrieved_session = await session_service_stateful.get_session(app_name = APP_NAME,
+            session_id=SESSION_ID_STATEFUL,
+            user_id=USER_ID_STATEFUL)
+
+
+        print("\n INITIAL SESSION STATE: ")
+        if retrieved_session:
+            print(retrieved_session.state)
+        else:
+            print("ERROR: Session not found.")
+            
+        print("\n---Testing Stateful Agent Conversation---")
+        print("--- Turn 1: Requesting weather in London (expect Celsius) ---")
+        await call_agent_async(
+            query = "What's the weather in London?",
+            runner= runner_root_stateful,
+            user_id = USER_ID_STATEFUL,
+            session_id= SESSION_ID_STATEFUL,
+        )
+        print("\n--- Manually Updating State: Setting unit to Fahrenheit ---")
+        try:
+            stored_session = session_service_stateful.sessions[APP_NAME][USER_ID_STATEFUL][SESSION_ID_STATEFUL]
+            stored_session.state["user_preference_unit"] = "Fahrenheit"
+            print(f"---Updated session state's values, current user preference: {stored_session.state.get("user_preference_unit")}---")
+        except KeyError as e:
+            print(f"---Error updating session state: {e}---")            
+        except Exception as e:
+             print(f"--- Error updating internal session state: {e} ---")
+
+        print("\n--- Turn 2: Requesting weather in New York (expect Fahrenheit) ---")
+        await call_agent_async(query= "Tell me the weather in New York.",
+                               runner=runner_root_stateful,
+                               user_id=USER_ID_STATEFUL,
+                               session_id=SESSION_ID_STATEFUL
+                              )
+        print("\n--- Turn 3: Sending a greeting ---")
+        await call_agent_async(query= "Hi, I'm Abhay!",
+                               runner=runner_root_stateful,
+                               user_id=USER_ID_STATEFUL,
+                               session_id=SESSION_ID_STATEFUL
+                              )
+
+    import asyncio
+    if __name__ == "__main__": # Ensures this runs only when script is executed directly
+        print("Executing using 'asyncio.run()' (for standard Python scripts)...")
+        try:
+            # This creates an event loop, runs your async function, and closes the loop.
+            asyncio.run(run_stateful_conversation())
+        except Exception as e:
+            print(f"An error occurred: {e}")

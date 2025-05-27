@@ -1,4 +1,3 @@
-from typing import 
 from vertexai import rag
 
 def list_corposa()-> dict:

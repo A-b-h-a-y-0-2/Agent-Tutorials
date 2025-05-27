@@ -81,3 +81,44 @@ def add_data(corpus_name:str,paths:List[str] ,tool_context:ToolContext) -> dict:
             "invalid_paths": invalid_paths,
         }
         
+    try:
+        corpus_resource_name = get_corpus_resource_name(corpus_name)
+
+        transformation_config = rag.TransformationConfig(
+            chunking_config=rag.ChunkingConfig(
+                chunk_size=DEFAULT_CHUNK_SIZE,
+                chunk_overlap=DEFAULT_CHUNK_OVERLAP,
+            ),
+        )
+
+        import_result = rag.import_files(
+            corpus_resource_name,
+            validated_paths,
+            transformation_config=transformation_config,
+            max_embedding_requests_per_min=DEFAULT_EMBEDDING_REQUEST_PER_MIN,
+        )
+
+        if not tool_context.state.get("current_corpus"):
+            tool_context.state["current_corpus"] = corpus_name
+
+        conversion_msg = ""
+        if conversions:
+            conversion_msg = " (Converted Google Docs URLs to Drive format)"
+
+        return {
+            "status": "success",
+            "message": f"Successfully added {import_result.imported_rag_files_count} file(s) to corpus '{corpus_name}'{conversion_msg}",
+            "corpus_name": corpus_name,
+            "files_added": import_result.imported_rag_files_count,
+            "paths": validated_paths,
+            "invalid_paths": invalid_paths,
+            "conversions": conversions,
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error adding data to corpus: {str(e)}",
+            "corpus_name": corpus_name,
+            "paths": paths,
+        }
